@@ -1,9 +1,12 @@
 package space.accident.virtualores.api
 
+import net.minecraft.init.Items
+import net.minecraft.item.ItemStack
 import net.minecraft.world.chunk.Chunk
 import space.accident.virtualores.api.VirtualOreAPI.LAYERS_VIRTUAL_ORES
 import space.accident.virtualores.api.VirtualOreAPI.REGIONS_VIRTUAL_ORES
 import space.accident.virtualores.api.VirtualOreAPI.getVirtualOre
+import java.awt.Color
 import java.util.*
 import kotlin.random.nextInt
 
@@ -18,19 +21,48 @@ object OreGenerator {
     private const val CHUNK_COUNT_IN_VEIN_COORDINATE = 4
     private const val VEIN_COUNT_IN_REGIN_COORDINATE = 4
 
+    init {
+        VirtualOreAPI.registerOre(
+            VirtualOreLayer(
+                VirtualOreVein(
+                    0,
+                    0, "test",
+                    40.0,
+                    1000..5000,
+                    Color.CYAN.hashCode(),
+                    listOf(0, 1),
+                    listOf(VirtualOreComponent(ItemStack(Items.leather, 1), 100)),
+                )
+            )
+        )
+        VirtualOreAPI.registerOre(
+            VirtualOreLayer(
+                VirtualOreVein(
+                    1,
+                    0, "test2",
+                    20.0,
+                    4000..7000,
+                    Color.WHITE.hashCode(),
+                    listOf(0, 1),
+                    listOf(VirtualOreComponent(ItemStack(Items.emerald, 1), 100)),
+                )
+            )
+        )
+    }
+
     /**
      * Generate Region Ore by Minecraft Chunk
      */
     fun Chunk.createOreRegion() {
         val dim = worldObj.provider.dimensionId
-        return getChunkVein().let { ch ->
+        getChunkVein().let { ch ->
             RegionOre(ch.x shr SHIFT_REGION_FROM_CHUNK, ch.z shr SHIFT_REGION_FROM_CHUNK, dim).let { reg ->
-                val hashRegion = Objects.hash(reg.x, reg.z, reg.dim)
-                if (!REGIONS_VIRTUAL_ORES.contains(hashRegion)) {
+                val hash = Objects.hash(reg.x, reg.z, dim)
+                if (!REGIONS_VIRTUAL_ORES.contains(hash)) {
                     reg.generate()
-                    REGIONS_VIRTUAL_ORES[hashRegion] = reg
+                    REGIONS_VIRTUAL_ORES[hash] = reg
                 } else {
-                    REGIONS_VIRTUAL_ORES[hashRegion]
+                    REGIONS_VIRTUAL_ORES[hash]
                 }
             }
         }
@@ -50,6 +82,7 @@ object OreGenerator {
      */
     private fun Chunk.getChunkVein(): ChunkOre {
         return chunkCoordIntPair.let {
+            print("ORE CHUNK ($xPosition $zPosition)")
             ChunkOre(it.chunkXPos, it.chunkZPos)
         }
     }

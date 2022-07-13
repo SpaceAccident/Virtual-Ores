@@ -36,7 +36,7 @@ data class VirtualOreVein(
     val color: Int,
     val dimensions: List<Int>,
     val ores: List<VirtualOreComponent>,
-    val special: VirtualSpecialTypeComponent,
+    val special: VirtualSpecialTypeComponent? = null,
 )
 
 /**
