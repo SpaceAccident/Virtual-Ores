@@ -552,58 +552,6 @@ tasks.withType(GenerateModuleMetadata) {
 // workaround variable hiding in pom processing
 def projectConfigs = project.configurations
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
-            if(usesShadowedDependencies.toBoolean()) {
-                artifact source: shadowJar, classifier: ""
-            }
-            if(!noPublishedSources) {
-                artifact source: sourcesJar, classifier: "sources"
-            }
-            artifact source: usesShadowedDependencies.toBoolean() ? shadowDevJar : devJar, classifier: "dev"
-            if (apiPackage) {
-                artifact source: apiJar, classifier: "api"
-            }
-
-            groupId = System.getenv("ARTIFACT_GROUP_ID") ?: "com.github.SpaceAccident"
-            artifactId = System.getenv("ARTIFACT_ID") ?: project.name
-            // Using the identified version, not project.version as it has the prepended 1.7.10
-            version = System.getenv("RELEASE_VERSION") ?: identifiedVersion
-
-            // remove extra garbage from minecraft and minecraftDeps configuration
-            pom.withXml {
-                def badArtifacts = [:].withDefault {[] as Set<String>}
-                for (configuration in [projectConfigs.minecraft, projectConfigs.minecraftDeps]) {
-                    for (dependency in configuration.allDependencies) {
-                        badArtifacts[dependency.group == null ? "" : dependency.group] += dependency.name
-                    }
-                }
-                // example for specifying extra stuff to ignore
-                // badArtifacts["org.example.group"] += "artifactName"
-
-                Node pomNode = asNode()
-                pomNode.dependencies.'*'.findAll() {
-                    badArtifacts[it.groupId.text()].contains(it.artifactId.text())
-                }.each() {
-                    it.parent().remove(it)
-                }
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            url = "http://jenkins.usrv.eu:8081/nexus/content/repositories/releases"
-            credentials {
-                username = System.getenv("MAVEN_USER") ?: "NONE"
-                password = System.getenv("MAVEN_PASSWORD") ?: "NONE"
-            }
-        }
-    }
-}
-
 // Updating
 task updateBuildScript {
     doLast {
