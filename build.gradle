@@ -1,11 +1,3 @@
-//version: 1650343995
-/*
-DO NOT CHANGE THIS FILE!
-
-Also, you may replace this file at any time if there is an update available.
-Please check https://github.com/GTNewHorizons/ExampleMod1.7.10/blob/main/build.gradle for updates.
-*/
-
 import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.internal.logging.text.StyledTextOutput.Style
@@ -575,7 +567,7 @@ publishing {
                 artifact source: apiJar, classifier: "api"
             }
 
-            groupId = System.getenv("ARTIFACT_GROUP_ID") ?: "com.github.GTNewHorizons"
+            groupId = System.getenv("ARTIFACT_GROUP_ID") ?: "com.github.SpaceAccident"
             artifactId = System.getenv("ARTIFACT_ID") ?: project.name
             // Using the identified version, not project.version as it has the prepended 1.7.10
             version = System.getenv("RELEASE_VERSION") ?: identifiedVersion
