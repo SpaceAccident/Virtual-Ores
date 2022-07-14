@@ -1,5 +1,7 @@
 package space.accident.virtualores.api
 
+import java.util.*
+
 /**
  * Random Chooser
  */
@@ -36,20 +38,23 @@ object RandomItemChooser {
      *
      * @param items list of items for choose
      */
-    fun <T : ItemChooser> chooseOnWeight(items: List<T>): T? {
+    fun <T : ItemChooser> chooseOnWeight(items: List<T>, seed: Long): T? {
         var total = 0.0
         for (item in items) {
             total += item.maxWeight
             item.weight = total
         }
-        val medium = Math.random() * total
+        val random = if (seed == 0L) Random() else Random(seed)
+        val medium = random.nextDouble() * total
 
         for (item in items) {
             if (item.weight > medium) {
                 item.weight -= item.reduceCoefficient
+                if (item.weight <= 0.0) item.weight = 0.0
                 return item
             } else {
                 item.weight += item.increaseCoefficient
+                if (item.weight >= item.maxWeight) item.weight = item.maxWeight
             }
         }
         return null

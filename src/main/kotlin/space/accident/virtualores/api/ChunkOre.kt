@@ -12,6 +12,11 @@ data class ChunkOre @JvmOverloads constructor(
     @SerializedName("size") var size: Int = 0
 ) {
 
+    fun hasExtract(amount: Int): Boolean {
+        size -= amount
+        return size > 0
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false

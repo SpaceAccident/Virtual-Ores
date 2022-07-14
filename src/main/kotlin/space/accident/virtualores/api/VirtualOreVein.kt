@@ -2,7 +2,6 @@ package space.accident.virtualores.api
 
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fluids.FluidStack
-import kotlin.random.Random.Default.nextDouble
 
 /**
  * Type for Virtual Ore
@@ -20,7 +19,7 @@ typealias VirtualSpecialTypeComponent = FluidStack
  * @param id ID of ore
  * @param layer layer of mining
  * @param name name of ore
- * @param maxWeight max weight by generation on the world
+ * @param weight max weight by generation on the world
  * @param rangeSize ore quantity range
  * @param color color of vein
  * @param dimensions dimensions in which there is ore
@@ -31,26 +30,32 @@ data class VirtualOreVein(
     val id: Int,
     val layer: Int,
     val name: String,
-    var maxWeight: Double,
+    var weight: Double,
     val rangeSize: IntRange,
     val color: Int,
     val dimensions: List<Int>,
     val ores: List<VirtualOreComponent>,
     val special: VirtualSpecialTypeComponent? = null,
-)
+) {
+    init {
+        VirtualOreAPI.registerOre(this)
+    }
 
-/**
- * Wrapper for Virtual ore with implement Random Chooser
- *
- * @param ore virtual ore
- */
-data class VirtualOreLayer(
-    val ore: VirtualOreVein,
-    override val maxWeight: Double = ore.maxWeight,
-    override var weight: Double = nextDouble(0.0, maxWeight),
-    override val reduceCoefficient: Double = 2.5,
-    override val increaseCoefficient: Double = 0.5,
-) : RandomItemChooser.ItemChooser
+    val maxWeight: Double = weight + 0.5
+    fun reduceWeight() {
+        weight -= 2.5
+        if (weight < 0.0) {
+            weight = 0.0
+        }
+    }
+
+    fun increaseWeight() {
+        weight += 0.5
+        if (weight > maxWeight) {
+            weight = maxWeight
+        }
+    }
+}
 
 /**
  * Vein Component for Virtual Ore

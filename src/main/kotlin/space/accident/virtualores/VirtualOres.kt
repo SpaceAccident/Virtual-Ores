@@ -3,7 +3,14 @@ package space.accident.virtualores
 import cpw.mods.fml.common.Mod
 import cpw.mods.fml.common.SidedProxy
 import cpw.mods.fml.common.event.*
+import net.minecraft.init.Items
+import net.minecraft.item.ItemStack
+import space.accident.virtualores.api.VirtualOreComponent
+import space.accident.virtualores.api.VirtualOreVein
+import space.accident.virtualores.client.GuiHandler
+import space.accident.virtualores.network.VirtualOresNetwork
 import space.accident.virtualores.proxy.CommonProxy
+import java.awt.Color
 
 @Mod(
     modid = MODID,
@@ -20,10 +27,12 @@ object VirtualOres {
 
     @JvmStatic
     @Mod.InstanceFactory
-    fun instance() = this
+    fun instance() = VirtualOres
 
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
+        VirtualOresNetwork
+        GuiHandler()
         proxy.preInit(event)
     }
 
@@ -34,6 +43,14 @@ object VirtualOres {
 
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
+
+        repeat(100) {
+            VirtualOreVein(
+                it + 1, 0, "TEST #$it", 40.0, 5000..100000,
+                Color(it, it, it).rgb,
+                listOf(1, 0, -1), listOf(VirtualOreComponent(ItemStack(Items.leather, 1), 50))
+            )
+        }
         proxy.postInit(event)
     }
 

@@ -2,7 +2,8 @@ package space.accident.virtualores.proxy
 
 import cpw.mods.fml.common.event.*
 import space.accident.virtualores.JsonManager
-import space.accident.virtualores.api.ScannerTool
+import space.accident.virtualores.common.items.ScannerTool
+import space.accident.virtualores.common.items.ScannerToolPrimitive
 
 open class CommonProxy {
 
@@ -11,6 +12,7 @@ open class CommonProxy {
 
     open fun init(event: FMLInitializationEvent) {
         ScannerTool()
+        ScannerToolPrimitive()
     }
 
     open fun postInit(event: FMLPostInitializationEvent) {
@@ -31,5 +33,8 @@ open class CommonProxy {
     }
 
     open fun serverStopped(event: FMLServerStoppedEvent) {
+    }
+
+    open fun openGui() {
     }
 }

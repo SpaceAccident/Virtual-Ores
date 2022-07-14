@@ -1,12 +1,12 @@
 package space.accident.virtualores
 
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import net.minecraftforge.common.DimensionManager
 import space.accident.virtualores.api.RegionOre
+import space.accident.virtualores.api.VirtualOreAPI
 import space.accident.virtualores.api.VirtualOreAPI.REGIONS_VIRTUAL_ORES
 import java.io.File
 import java.io.FileWriter
@@ -67,12 +67,13 @@ object JsonManager {
                     val type = object : TypeToken<List<RegionOre>>() {}.type
                     val regions = gson.fromJson<List<RegionOre>>(it, type)
                     regions.forEach { reg ->
-                        val hash = Objects.hash(reg.x, reg.z, reg.dim)
+                        val hash = Objects.hash(reg.xRegion, reg.zRegion, reg.dim)
                         REGIONS_VIRTUAL_ORES[hash] = reg
                     }
                 }
             }
         }
+        VirtualOreAPI.resizeVeins()
     }
 
     private fun saveOres() {
