@@ -1,23 +1,100 @@
 package space.accident.virtualores.common.items
 
+import cpw.mods.fml.common.FMLCommonHandler
+import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import cpw.mods.fml.common.registry.GameRegistry
 import cpw.mods.fml.relauncher.Side
 import cpw.mods.fml.relauncher.SideOnly
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.IIconRegister
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.util.ChatComponentText
 import net.minecraft.util.IIcon
 import net.minecraft.world.World
 import net.minecraft.world.chunk.Chunk
+import net.minecraftforge.client.event.MouseEvent
+import net.minecraftforge.common.MinecraftForge
+import org.lwjgl.input.Keyboard
 import space.accident.virtualores.ASSETS
+import space.accident.virtualores.api.FluidGenerator.getVein
 import space.accident.virtualores.api.OreGenerator.getVeinAndChunk
 import space.accident.virtualores.api.VirtualOreAPI
+import space.accident.virtualores.api.VirtualOreAPI.LAYERS_VIRTUAL_ORES
+import space.accident.virtualores.network.ChangeLayerScannerPacket
 import space.accident.virtualores.network.FindVeinsPacket
 import space.accident.virtualores.network.VirtualOresNetwork
 
 class ScannerTool : Item() {
+
+    init {
+        FMLCommonHandler.instance().bus().register(this)
+        MinecraftForge.EVENT_BUS.register(this)
+    }
+
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    fun onMouseEvent(event: MouseEvent) {
+        val entityPlayer: EntityPlayer = Minecraft.getMinecraft().thePlayer
+        if (Keyboard.isKeyDown(Keyboard.KEY_RMENU) || Keyboard.isKeyDown(Keyboard.KEY_LMENU) ||
+            Keyboard.isKeyDown(Keyboard.KEY_RCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_LCONTROL)
+        ) {
+            entityPlayer.heldItem?.let {
+                (it.item as? ScannerTool)?.let {
+                    if (event.dwheel != 0) {
+                        VirtualOresNetwork.sendToServer(
+                            ChangeLayerScannerPacket(
+                                entityPlayer.worldObj.provider.dimensionId,
+                                entityPlayer.entityId
+                            )
+                        )
+                    }
+                    event.isCanceled = true
+                }
+            }
+        }
+    }
+
+    private fun ItemStack.setNBT(data: Int, key: String) {
+        val nbt = tagCompound ?: NBTTagCompound().apply { tagCompound = this }
+        val props = nbt.getTag("props") ?: NBTTagCompound().apply { nbt.setTag("props", this) }
+        (props as NBTTagCompound).setInteger(key, data)
+        val x = 0
+    }
+
+    private fun ItemStack.getNBTInt(key: String): Int {
+        val nbt = tagCompound?.getCompoundTag("props") ?: return 0
+        return nbt.getInteger(key)
+    }
+
+    private fun EntityPlayer.send(msg: String) {
+        addChatMessage(ChatComponentText(msg))
+    }
+
+    fun changeLayer(player: EntityPlayer, stack: ItemStack) {
+        val type = stack.getNBTInt(NBT_TYPE)
+        if (type == TYPE_ORES) {
+            var realLayer = stack.getNBTInt(NBT_LAYER) + 1
+            if (realLayer >= LAYERS_VIRTUAL_ORES) {
+                realLayer = 0
+            }
+            player.send("Set Ore Layer: #$realLayer")
+            stack.setNBT(realLayer, NBT_LAYER)
+        }
+    }
+
+    companion object {
+        const val TYPE_ORES = 0
+        const val TYPE_FLUIDS = 1
+
+        const val TYPES_COUNT = 2
+
+        const val NBT_TYPE = "type_mode"
+        const val NBT_LAYER = "layer_id"
+    }
 
     @SideOnly(Side.CLIENT)
     lateinit var icon: IIcon
@@ -49,7 +126,25 @@ class ScannerTool : Item() {
     override fun onItemRightClick(stack: ItemStack, world: World, player: EntityPlayer): ItemStack? {
         if (!world.isRemote) {
 
-            val layer = 0
+            var type = stack.getNBTInt(NBT_TYPE)
+            val layer = if (type == TYPE_ORES) stack.getNBTInt(NBT_LAYER) else 0
+
+            if (player.isSneaking) {
+                type++
+
+                if (type >= TYPES_COUNT) {
+                    type = 0
+                }
+
+                when (type) {
+                    TYPE_ORES -> player.send("Set Mode: Virtual Ores")
+                    TYPE_FLUIDS -> player.send("Set Mode: Virtual Fluids")
+                }
+
+                stack.setNBT(type, NBT_TYPE)
+                return super.onItemRightClick(stack, world, player)
+            }
+
             val radius = 11
 
             val chX = player.posX.toInt() shr 4
@@ -64,29 +159,60 @@ class ScannerTool : Item() {
                     }
                 }
             }
-            val packet = FindVeinsPacket(chX, chZ, player.posX.toInt(), player.posZ.toInt(), radius - 1, 0)
+            val packet = FindVeinsPacket(chX, chZ, player.posX.toInt(), player.posZ.toInt(), radius - 1, type)
             for (chunk in chunks) {
-                VirtualOreAPI.generateRegion(chunk).also { region ->
-                    region.getVeinAndChunk(chunk, layer)?.let { (veinOre, chunkOre) ->
-                        VirtualOreAPI.getVirtualVeinInChunk(veinOre, layer, region.dim)?.also { ore ->
-                            val size = chunkOre.size.toDouble() / ore.rangeSize.last.toDouble() * 100.0
-                            for (xx in 0..15) {
-                                for (zz in 0..15) {
-                                    packet.addRenderComponent(
-                                        chunk.xPosition * 16 + xx,
-                                        chunk.zPosition * 16 + zz,
-                                        ore.id,
-                                        size.toInt()
-                                    )
-                                }
-                            }
-                        }
-                    }
+                when (type) {
+                    TYPE_ORES -> scanOres(chunk, packet, layer)
+                    TYPE_FLUIDS -> scanFluids(chunk, packet)
                 }
             }
             packet.level = radius - 1
             VirtualOresNetwork.sendToPlayer(packet, player as EntityPlayerMP)
         }
         return super.onItemRightClick(stack, world, player)
+    }
+
+    /**
+     * Scanning Virtual Fluids
+     */
+    private fun scanFluids(chunk: Chunk, packet: FindVeinsPacket) {
+        VirtualOreAPI.generateFluidRegion(chunk).also { region ->
+            region.getVein(chunk)?.let { veinFluid ->
+                VirtualOreAPI.getVirtualFluidVeinById(veinFluid.fluidId).also { vein ->
+                    val size = veinFluid.size.toDouble() / vein.rangeSize.last.toDouble() * 100.0
+                    fillPacketForChunk(chunk, packet, vein.id, size.toInt())
+                }
+            }
+        }
+    }
+
+    /**
+     * Scanning Virtual Ores
+     */
+    private fun scanOres(chunk: Chunk, packet: FindVeinsPacket, layer: Int) {
+        VirtualOreAPI.generateOreRegion(chunk).also { region ->
+            region.getVeinAndChunk(chunk, layer)?.let { (veinOre, chunkOre) ->
+                VirtualOreAPI.getVirtualOreVeinInChunk(veinOre, layer, region.dim)?.also { ore ->
+                    val size = chunkOre.size.toDouble() / ore.rangeSize.last.toDouble() * 100.0
+                    fillPacketForChunk(chunk, packet, ore.id, size.toInt())
+                }
+            }
+        }
+    }
+
+    /**
+     * Fill packet by chunk`s coordinates
+     */
+    private fun fillPacketForChunk(chunk: Chunk, packet: FindVeinsPacket, idComponent: Int, size: Int) {
+        for (xx in 0..15) {
+            for (zz in 0..15) {
+                packet.addRenderComponent(
+                    chunk.xPosition * 16 + xx,
+                    chunk.zPosition * 16 + zz,
+                    idComponent,
+                    size
+                )
+            }
+        }
     }
 }

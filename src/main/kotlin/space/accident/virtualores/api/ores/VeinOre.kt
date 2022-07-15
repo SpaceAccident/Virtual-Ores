@@ -1,4 +1,4 @@
-package space.accident.virtualores.api
+package space.accident.virtualores.api.ores
 
 import com.google.gson.annotations.SerializedName
 import java.util.*

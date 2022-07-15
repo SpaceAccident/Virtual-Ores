@@ -1,4 +1,4 @@
-package space.accident.virtualores.api
+package space.accident.virtualores.api.ores
 
 import com.google.gson.annotations.SerializedName
 import java.util.*
@@ -13,7 +13,7 @@ data class RegionOre @JvmOverloads constructor(
     @SerializedName("z") val zRegion: Int,
     @SerializedName("d") val dim: Int,
     @SerializedName("veins") val veins: HashMap<Int, ArrayList<VeinOre>> = HashMap()
-) {
+)  {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false

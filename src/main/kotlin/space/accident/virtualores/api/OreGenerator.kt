@@ -1,9 +1,12 @@
 package space.accident.virtualores.api
 
 import net.minecraft.world.chunk.Chunk
+import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_ORES
 import space.accident.virtualores.api.VirtualOreAPI.LAYERS_VIRTUAL_ORES
-import space.accident.virtualores.api.VirtualOreAPI.REGIONS_VIRTUAL_ORES
 import space.accident.virtualores.api.VirtualOreAPI.getRandomVirtualOre
+import space.accident.virtualores.api.ores.ChunkOre
+import space.accident.virtualores.api.ores.RegionOre
+import space.accident.virtualores.api.ores.VeinOre
 import java.util.*
 import kotlin.random.nextInt
 
@@ -23,17 +26,22 @@ object OreGenerator {
      */
     fun Chunk.createOreRegion(): RegionOre {
         val dim = worldObj.provider.dimensionId
-        return RegionOre(
+        RegionOre(
             xPosition shr SHIFT_REGION_FROM_CHUNK, zPosition shr SHIFT_REGION_FROM_CHUNK, dim
         ).let { reg ->
             val hash = Objects.hash(reg.xRegion, reg.zRegion, dim)
-            if (!REGIONS_VIRTUAL_ORES.contains(hash)) {
-                reg.generate(worldObj.seed)
-                REGIONS_VIRTUAL_ORES[hash] = reg
-                reg
-            } else {
-                REGIONS_VIRTUAL_ORES[hash]!!
+            GENERATED_REGIONS_VIRTUAL_ORES[dim]?.let {
+                if (!it.contains(hash)) {
+                    reg.generate()
+                    it[hash] = reg
+                } else {
+                    return it[hash]!!
+                }
+            } ?: apply {
+                reg.generate()
+                GENERATED_REGIONS_VIRTUAL_ORES[dim] = hashMapOf(hash to reg)
             }
+            return reg
         }
     }
 
@@ -67,15 +75,13 @@ object OreGenerator {
 
     /**
      * Generate Ore Region with all layers
-     *
-     * @param seed seed of current world
      */
-    private fun RegionOre.generate(seed: Long = 0L) {
+    private fun RegionOre.generate() {
         for (layer in 0 until LAYERS_VIRTUAL_ORES) {
             val rawVeins = ArrayList<VeinOre>()
             for (xx in 0 until VEIN_COUNT_IN_REGIN_COORDINATE) {
                 for (zz in 0 until VEIN_COUNT_IN_REGIN_COORDINATE) {
-                    getRandomVirtualOre(layer, dim, seed)?.also { ore ->
+                    getRandomVirtualOre(layer, dim)?.also { ore ->
                         VeinOre(
                             xVein = (xRegion shl SHIFT_VEIN_FROM_REGION) + xx,
                             zVein = (zRegion shl SHIFT_VEIN_FROM_REGION) + zz,

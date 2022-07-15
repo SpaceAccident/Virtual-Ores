@@ -4,10 +4,12 @@ import cpw.mods.fml.common.event.*
 import space.accident.virtualores.JsonManager
 import space.accident.virtualores.common.items.ScannerTool
 import space.accident.virtualores.common.items.ScannerToolPrimitive
+import space.accident.virtualores.config.Config
 
 open class CommonProxy {
 
     open fun preInit(event: FMLPreInitializationEvent) {
+        Config.createConfig(event.modConfigurationDirectory)
     }
 
     open fun init(event: FMLInitializationEvent) {

@@ -39,7 +39,7 @@ class ScannerToolPrimitive : Item() {
             val chunk = world.getChunkFromBlockCoords(x, z)
             chunk.createOreRegion().apply {
                 getVeinAndChunk(chunk, 0)?.let { (veinOre, chunkOre) ->
-                    VirtualOreAPI.getVirtualVeinInChunk(veinOre, 0, dim)?.also { ore ->
+                    VirtualOreAPI.getVirtualOreVeinInChunk(veinOre, 0, dim)?.also { ore ->
                         player.send("${ore.name}, size: ${chunkOre.size.toDouble() / ore.rangeSize.last.toDouble() * 100.0}")
                     }
                 }

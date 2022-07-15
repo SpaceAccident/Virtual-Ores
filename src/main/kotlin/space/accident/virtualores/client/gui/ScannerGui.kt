@@ -78,7 +78,6 @@ class ScannerGui : GuiScreen() {
             // right down
             drawTexturedModalRect(aX + currentWidth + 100, aZ + currentHeight, 171, 161, 5, 5)
 
-
             // draw edges
             //top
             var i = aX

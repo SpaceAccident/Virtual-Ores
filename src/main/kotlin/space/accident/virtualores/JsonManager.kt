@@ -1,13 +1,17 @@
 package space.accident.virtualores
 
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import net.minecraftforge.common.DimensionManager
-import space.accident.virtualores.api.RegionOre
+import space.accident.virtualores.api.TypeFluidVein
 import space.accident.virtualores.api.VirtualOreAPI
-import space.accident.virtualores.api.VirtualOreAPI.REGIONS_VIRTUAL_ORES
+import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_FLUIDS
+import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_ORES
+import space.accident.virtualores.api.fluids.RegionFluid
+import space.accident.virtualores.api.ores.RegionOre
+import space.accident.virtualores.extras.TypeFluidVeinSerialized
 import java.io.File
 import java.io.FileWriter
 import java.util.*
@@ -17,9 +21,15 @@ object JsonManager {
     private var WORLD_DIRECTORY: File? = null
     private const val ROOT_FOLDER = "SpaceAccident"
     private const val VIRTUAL_ORE_FOLDER = "VirtualOres"
+    private const val VIRTUAL_FLUID_FOLDER = "VirtualFluids"
 
     private lateinit var rootDirectory: File
     private lateinit var oresDirectory: File
+    private lateinit var fluidsDirectory: File
+
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(TypeFluidVein::class.java, TypeFluidVeinSerialized())
+        .create()
 
     private fun initData() {
         WORLD_DIRECTORY = DimensionManager.getCurrentSaveRootDirectory()
@@ -28,6 +38,7 @@ object JsonManager {
         }
         rootDirectory = File(WORLD_DIRECTORY, ROOT_FOLDER)
         oresDirectory = File(rootDirectory, VIRTUAL_ORE_FOLDER)
+        fluidsDirectory = File(rootDirectory, VIRTUAL_FLUID_FOLDER)
 
         if (!rootDirectory.isDirectory && !rootDirectory.mkdirs()) {
             println(IllegalStateException("[SpaceAccident|VirtualOres] Failed to create ${rootDirectory.absolutePath}"))
@@ -35,15 +46,20 @@ object JsonManager {
         if (!oresDirectory.isDirectory && !oresDirectory.mkdirs()) {
             println(IllegalStateException("[SpaceAccident|VirtualOres] Failed to create ${oresDirectory.absolutePath}"))
         }
+        if (!fluidsDirectory.isDirectory && !fluidsDirectory.mkdirs()) {
+            println(IllegalStateException("[SpaceAccident|VirtualOres] Failed to create ${fluidsDirectory.absolutePath}"))
+        }
     }
 
     private fun clearData() {
-        REGIONS_VIRTUAL_ORES.clear()
+        GENERATED_REGIONS_VIRTUAL_ORES.clear()
+        GENERATED_REGIONS_VIRTUAL_FLUIDS.clear()
     }
 
     fun save() {
         runBlocking(Dispatchers.IO) {
             saveOres()
+            saveFluids()
         }
 
         clearData()
@@ -56,42 +72,75 @@ object JsonManager {
 
         runBlocking {
             loadOres()
+            loadFluids()
         }
     }
 
     private fun loadOres() {
-        GsonBuilder().setPrettyPrinting().create().also { gson ->
-            if (!oresDirectory.isDirectory) return
-            oresDirectory.listFiles()?.forEach { file ->
-                file.bufferedReader().use {
-                    val type = object : TypeToken<List<RegionOre>>() {}.type
-                    val regions = gson.fromJson<List<RegionOre>>(it, type)
-                    regions.forEach { reg ->
+        if (!oresDirectory.isDirectory) return
+        oresDirectory.listFiles()?.forEach { folderDim ->
+            if (folderDim.isDirectory) {
+                var currentDim = 0
+                val dimRegions = HashMap<Int, RegionOre>()
+                folderDim.listFiles()?.forEach { fileRegion ->
+                    fileRegion.bufferedReader().use {
+                        val reg = gson.fromJson(it, RegionOre::class.java)
                         val hash = Objects.hash(reg.xRegion, reg.zRegion, reg.dim)
-                        REGIONS_VIRTUAL_ORES[hash] = reg
+                        currentDim = reg.dim
+                        dimRegions[hash] = reg
+                    }
+                }
+                GENERATED_REGIONS_VIRTUAL_ORES[currentDim] = dimRegions
+            }
+        }
+        VirtualOreAPI.resizeOreVeins()
+    }
+
+    private fun saveOres() {
+        if (GENERATED_REGIONS_VIRTUAL_ORES.isEmpty()) return
+        for ((dim, regions) in GENERATED_REGIONS_VIRTUAL_ORES) {
+            val folderDim = File(oresDirectory, "DIM$dim")
+            if (folderDim.mkdirs()) {
+                for ((_, region) in regions) {
+                    val fileRegion = File(folderDim, "r.${region.xRegion}.${region.zRegion}.json")
+                    FileWriter(fileRegion).buffered().use {
+                        gson.toJson(region, it)
                     }
                 }
             }
         }
-        VirtualOreAPI.resizeVeins()
     }
 
-    private fun saveOres() {
-        if (REGIONS_VIRTUAL_ORES.isEmpty()) return
-        GsonBuilder().setPrettyPrinting().create().also { gson ->
-
-            val map = HashMap<Int, ArrayList<RegionOre>>()
-
-            REGIONS_VIRTUAL_ORES.forEach { (_, reg) ->
-                if (!map.contains(reg.dim)) {
-                    map[reg.dim] = arrayListOf(reg)
-                } else {
-                    map[reg.dim]?.add(reg)
+    private fun loadFluids() {
+        if (!fluidsDirectory.isDirectory) return
+        fluidsDirectory.listFiles()?.forEach { folderDim ->
+            if (folderDim.isDirectory) {
+                var currentDim = 0
+                val dimRegions = HashMap<Int, RegionFluid>()
+                folderDim.listFiles()?.forEach { fileRegion ->
+                    fileRegion.bufferedReader().use {
+                        val reg = gson.fromJson(it, RegionFluid::class.java)
+                        val hash = Objects.hash(reg.xRegion, reg.zRegion, reg.dim)
+                        currentDim = reg.dim
+                        dimRegions[hash] = reg
+                    }
                 }
+                GENERATED_REGIONS_VIRTUAL_FLUIDS[currentDim] = dimRegions
             }
-            for ((dim, regions) in map) {
-                FileWriter(File(oresDirectory, "DIM${dim}.json")).buffered().use {
-                    gson.toJson(regions, it)
+        }
+        VirtualOreAPI.resizeFluidVeins()
+    }
+
+    private fun saveFluids() {
+        if (GENERATED_REGIONS_VIRTUAL_FLUIDS.isEmpty()) return
+        for ((dim, regions) in GENERATED_REGIONS_VIRTUAL_FLUIDS) {
+            val folderDim = File(fluidsDirectory, "DIM$dim")
+            if (folderDim.mkdirs()) {
+                for ((_, region) in regions) {
+                    val fileRegion = File(folderDim, "r.${region.xRegion}.${region.zRegion}.json")
+                    FileWriter(fileRegion).buffered().use {
+                        gson.toJson(region, it)
+                    }
                 }
             }
         }

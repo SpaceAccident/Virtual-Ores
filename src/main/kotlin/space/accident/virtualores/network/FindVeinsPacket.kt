@@ -6,6 +6,8 @@ import space.accident.virtualores.VirtualOres
 import space.accident.virtualores.api.VirtualOreAPI
 import space.accident.virtualores.client.gui.ScannerGui
 import space.accident.virtualores.client.gui.widgets.RenderMapTexture
+import space.accident.virtualores.common.items.ScannerTool.Companion.TYPE_FLUIDS
+import space.accident.virtualores.common.items.ScannerTool.Companion.TYPE_ORES
 
 typealias BlockCoordinates = Pair<Int, Int>
 typealias RenderMap = HashMap<BlockCoordinates, RenderComponent>
@@ -16,13 +18,14 @@ data class RenderComponent(
 )
 
 class FindVeinsPacket(
-    val chunkX: Int,
-    val chunkZ: Int,
-    val centerX: Int,
-    val centerZ: Int,
-    val radius: Int,
-    val type: Int,
+    val chunkX: Int = 0,
+    val chunkZ: Int = 0,
+    val centerX: Int = 0,
+    val centerZ: Int = 0,
+    val radius: Int = 0,
+    val type: Int = 0,
 ) : IPacket {
+
 
     val map: RenderMap = RenderMap()
 
@@ -30,10 +33,16 @@ class FindVeinsPacket(
     val metaMap: HashMap<Short, String> = HashMap()
     var level = -1
 
-    private fun addComponent(idComponent: Int) {
-        VirtualOreAPI.getRegisterOres().find { it.id == idComponent }?.let {
-            ores[it.name] = it.color
-            metaMap[idComponent.toShort()] = it.name
+    private fun addComponent(idComponent: Int, type: Int) {
+        when (type) {
+            TYPE_ORES -> VirtualOreAPI.getRegisterOres().find { it.id == idComponent }?.let {
+                ores[it.name] = it.color
+                metaMap[idComponent.toShort()] = it.name
+            }
+            TYPE_FLUIDS -> VirtualOreAPI.getRegisterFluids().find { it.id == idComponent }?.let {
+                ores[it.name] = it.color
+                metaMap[idComponent.toShort()] = it.name
+            }
         }
     }
 
@@ -85,32 +94,30 @@ class FindVeinsPacket(
         VirtualOres.proxy.openGui()
     }
 
-    companion object {
-        fun decode(data: ByteArrayDataInput): Any {
-            val packet = FindVeinsPacket(
-                chunkX = data.readInt(),
-                chunkZ = data.readInt(),
-                centerX = data.readInt(),
-                centerZ = data.readInt(),
-                radius = data.readInt(),
-                type = data.readInt()
-            )
-            packet.level = data.readInt()
+    override fun decode(data: ByteArrayDataInput): IPacket {
+        val packet = FindVeinsPacket(
+            chunkX = data.readInt(),
+            chunkZ = data.readInt(),
+            centerX = data.readInt(),
+            centerZ = data.readInt(),
+            radius = data.readInt(),
+            type = data.readInt()
+        )
+        packet.level = data.readInt()
 
-            val radius = (packet.radius * 2 + 1) * 16
+        val radius = (packet.radius * 2 + 1) * 16
 
-            for (x in 0 until radius) {
-                for (z in 0 until radius) {
-                    val coordinates = BlockCoordinates(x, z)
-                    val idComponent = data.readInt()
-                    val amount = data.readInt()
-                    val component = RenderComponent(idComponent, amount)
-                    packet.map[coordinates] = component
-                    packet.addComponent(idComponent)
-                }
+        for (x in 0 until radius) {
+            for (z in 0 until radius) {
+                val coordinates = BlockCoordinates(x, z)
+                val idComponent = data.readInt()
+                val amount = data.readInt()
+                val component = RenderComponent(idComponent, amount)
+                packet.map[coordinates] = component
+                packet.addComponent(idComponent, packet.type)
             }
-            return packet
         }
+        return packet
     }
 
     fun getSize(): Int {
