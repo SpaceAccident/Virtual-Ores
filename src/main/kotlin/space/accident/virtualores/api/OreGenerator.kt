@@ -1,9 +1,9 @@
 package space.accident.virtualores.api
 
 import net.minecraft.world.chunk.Chunk
-import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_ORES
-import space.accident.virtualores.api.VirtualOreAPI.LAYERS_VIRTUAL_ORES
-import space.accident.virtualores.api.VirtualOreAPI.getRandomVirtualOre
+import space.accident.virtualores.api.VirtualAPI.GENERATED_REGIONS_VIRTUAL_ORES
+import space.accident.virtualores.api.VirtualAPI.LAYERS_VIRTUAL_ORES
+import space.accident.virtualores.api.VirtualAPI.getRandomVirtualOre
 import space.accident.virtualores.api.ores.ChunkOre
 import space.accident.virtualores.api.ores.RegionOre
 import space.accident.virtualores.api.ores.VeinOre

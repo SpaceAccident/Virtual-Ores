@@ -12,7 +12,6 @@ import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.ChatComponentText
 import net.minecraft.util.IIcon
 import net.minecraft.world.World
 import net.minecraft.world.chunk.Chunk
@@ -22,8 +21,12 @@ import org.lwjgl.input.Keyboard
 import space.accident.virtualores.ASSETS
 import space.accident.virtualores.api.FluidGenerator.getVein
 import space.accident.virtualores.api.OreGenerator.getVeinAndChunk
-import space.accident.virtualores.api.VirtualOreAPI
-import space.accident.virtualores.api.VirtualOreAPI.LAYERS_VIRTUAL_ORES
+import space.accident.virtualores.api.VirtualAPI
+import space.accident.virtualores.api.VirtualAPI.LAYERS_VIRTUAL_ORES
+import space.accident.virtualores.config.Config.IS_DISABLED_VIRTUAL_FLUIDS
+import space.accident.virtualores.config.Config.IS_DISABLED_VIRTUAL_ORES
+import space.accident.virtualores.extras.send
+import space.accident.virtualores.extras.toTranslate
 import space.accident.virtualores.network.ChangeLayerScannerPacket
 import space.accident.virtualores.network.FindVeinsPacket
 import space.accident.virtualores.network.VirtualOresNetwork
@@ -62,16 +65,11 @@ class ScannerTool : Item() {
         val nbt = tagCompound ?: NBTTagCompound().apply { tagCompound = this }
         val props = nbt.getTag("props") ?: NBTTagCompound().apply { nbt.setTag("props", this) }
         (props as NBTTagCompound).setInteger(key, data)
-        val x = 0
     }
 
     private fun ItemStack.getNBTInt(key: String): Int {
         val nbt = tagCompound?.getCompoundTag("props") ?: return 0
         return nbt.getInteger(key)
-    }
-
-    private fun EntityPlayer.send(msg: String) {
-        addChatMessage(ChatComponentText(msg))
     }
 
     fun changeLayer(player: EntityPlayer, stack: ItemStack) {
@@ -81,7 +79,8 @@ class ScannerTool : Item() {
             if (realLayer >= LAYERS_VIRTUAL_ORES) {
                 realLayer = 0
             }
-            player.send("Set Ore Layer: #$realLayer")
+            // Set ore layer #
+            player.send("scanner.change_layer".toTranslate() + realLayer)
             stack.setNBT(realLayer, NBT_LAYER)
         }
     }
@@ -99,6 +98,7 @@ class ScannerTool : Item() {
     @SideOnly(Side.CLIENT)
     lateinit var icon: IIcon
 
+    @SideOnly(Side.CLIENT)
     override fun registerIcons(reg: IIconRegister) {
         icon = reg.registerIcon("$ASSETS:ore_scanner")
     }
@@ -108,19 +108,38 @@ class ScannerTool : Item() {
         return icon
     }
 
+    @SideOnly(Side.CLIENT)
     override fun addInformation(
         stack: ItemStack,
         player: EntityPlayer,
         tooltip: MutableList<Any?>,
         f3: Boolean
     ) {
-        tooltip += "TEST1"
+        val mode = stack.getNBTInt(NBT_TYPE)
+        val layer = stack.getNBTInt(NBT_LAYER)
+        // Change scanner mode: SHIFT + Right Click
+        tooltip += "scanner.tooltip.0".toTranslate()
+        val modName = when (mode) {
+            TYPE_ORES -> "scanner.tooltip.2".toTranslate() // Virtual Ores
+            TYPE_FLUIDS -> "scanner.tooltip.4".toTranslate() // Virtual Fluids else
+            else -> ""
+        }
+        // Current scanner mode:
+        tooltip += "scanner.tooltip.1".toTranslate() + " " + modName
+        if (mode == TYPE_ORES) {
+            tooltip += "scanner.tooltip.3".toTranslate() // Change ore layer scanner: CTRL + SCROLL
+            tooltip += "scanner.tooltip.6".toTranslate() + layer // Current ore layer: #
+        }
+        // To scan the area use Right Click
+        tooltip += "scanner.tooltip.5".toTranslate()
     }
 
     init {
         setMaxStackSize(1)
         unlocalizedName = "virtual_ore_scanner"
-        GameRegistry.registerItem(this, "virtual_ore_scanner")
+        if (!IS_DISABLED_VIRTUAL_ORES && !IS_DISABLED_VIRTUAL_FLUIDS) {
+            GameRegistry.registerItem(this, "virtual_ore_scanner")
+        }
     }
 
     override fun onItemRightClick(stack: ItemStack, world: World, player: EntityPlayer): ItemStack? {
@@ -137,10 +156,9 @@ class ScannerTool : Item() {
                 }
 
                 when (type) {
-                    TYPE_ORES -> player.send("Set Mode: Virtual Ores")
-                    TYPE_FLUIDS -> player.send("Set Mode: Virtual Fluids")
+                    TYPE_ORES -> player.send("scanner.change_mode.0".toTranslate()) //Set mod: Underground Ores
+                    TYPE_FLUIDS -> player.send("scanner.change_mode.1".toTranslate()) //Set mod: Underground Ores
                 }
-
                 stack.setNBT(type, NBT_TYPE)
                 return super.onItemRightClick(stack, world, player)
             }
@@ -176,9 +194,9 @@ class ScannerTool : Item() {
      * Scanning Virtual Fluids
      */
     private fun scanFluids(chunk: Chunk, packet: FindVeinsPacket) {
-        VirtualOreAPI.generateFluidRegion(chunk).also { region ->
+        VirtualAPI.generateFluidRegion(chunk).also { region ->
             region.getVein(chunk)?.let { veinFluid ->
-                VirtualOreAPI.getVirtualFluidVeinById(veinFluid.fluidId).also { vein ->
+                VirtualAPI.getVirtualFluidVeinById(veinFluid.fluidId).also { vein ->
                     val size = veinFluid.size.toDouble() / vein.rangeSize.last.toDouble() * 100.0
                     fillPacketForChunk(chunk, packet, vein.id, size.toInt())
                 }
@@ -190,9 +208,9 @@ class ScannerTool : Item() {
      * Scanning Virtual Ores
      */
     private fun scanOres(chunk: Chunk, packet: FindVeinsPacket, layer: Int) {
-        VirtualOreAPI.generateOreRegion(chunk).also { region ->
+        VirtualAPI.generateOreRegion(chunk).also { region ->
             region.getVeinAndChunk(chunk, layer)?.let { (veinOre, chunkOre) ->
-                VirtualOreAPI.getVirtualOreVeinInChunk(veinOre, layer, region.dim)?.also { ore ->
+                VirtualAPI.getVirtualOreVeinInChunk(veinOre, layer, region.dim)?.also { ore ->
                     val size = chunkOre.size.toDouble() / ore.rangeSize.last.toDouble() * 100.0
                     fillPacketForChunk(chunk, packet, ore.id, size.toInt())
                 }
@@ -206,12 +224,7 @@ class ScannerTool : Item() {
     private fun fillPacketForChunk(chunk: Chunk, packet: FindVeinsPacket, idComponent: Int, size: Int) {
         for (xx in 0..15) {
             for (zz in 0..15) {
-                packet.addRenderComponent(
-                    chunk.xPosition * 16 + xx,
-                    chunk.zPosition * 16 + zz,
-                    idComponent,
-                    size
-                )
+                packet.addRenderComponent(chunk.xPosition * 16 + xx, chunk.zPosition * 16 + zz, idComponent, size)
             }
         }
     }

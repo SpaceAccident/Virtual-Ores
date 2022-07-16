@@ -38,7 +38,7 @@ data class VirtualOreVein(
     val special: VirtualSpecialTypeComponent? = null,
 ) {
     init {
-        VirtualOreAPI.registerVirtualOre(this)
+        VirtualAPI.registerVirtualOre(this)
     }
 
     val maxWeight: Double = weight + 0.5

@@ -31,7 +31,7 @@ data class VirtualFluidVein(
     val fluid: VirtualFluidTypeComponent,
 ) {
     init {
-        VirtualOreAPI.registerVirtualFluid(this)
+        VirtualAPI.registerVirtualFluid(this)
     }
 
     val maxWeight: Double = weight + 0.5

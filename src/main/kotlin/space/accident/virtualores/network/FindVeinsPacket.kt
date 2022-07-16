@@ -3,7 +3,7 @@ package space.accident.virtualores.network
 import com.google.common.io.ByteArrayDataInput
 import com.google.common.io.ByteStreams
 import space.accident.virtualores.VirtualOres
-import space.accident.virtualores.api.VirtualOreAPI
+import space.accident.virtualores.api.VirtualAPI
 import space.accident.virtualores.client.gui.ScannerGui
 import space.accident.virtualores.client.gui.widgets.RenderMapTexture
 import space.accident.virtualores.common.items.ScannerTool.Companion.TYPE_FLUIDS
@@ -35,11 +35,11 @@ class FindVeinsPacket(
 
     private fun addComponent(idComponent: Int, type: Int) {
         when (type) {
-            TYPE_ORES -> VirtualOreAPI.getRegisterOres().find { it.id == idComponent }?.let {
+            TYPE_ORES -> VirtualAPI.getRegisterOres().find { it.id == idComponent }?.let {
                 ores[it.name] = it.color
                 metaMap[idComponent.toShort()] = it.name
             }
-            TYPE_FLUIDS -> VirtualOreAPI.getRegisterFluids().find { it.id == idComponent }?.let {
+            TYPE_FLUIDS -> VirtualAPI.getRegisterFluids().find { it.id == idComponent }?.let {
                 ores[it.name] = it.color
                 metaMap[idComponent.toShort()] = it.name
             }

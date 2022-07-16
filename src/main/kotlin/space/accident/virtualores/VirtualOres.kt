@@ -52,26 +52,6 @@ object VirtualOres {
 
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
-
-        repeat(100) {
-            VirtualOreVein(
-                it + 1, 0, "TEST #$it", 40.0, 5000..100000,
-                Color(it, it, it).rgb,
-                listOf(1, 0, -1), listOf(VirtualOreComponent(ItemStack(Items.leather, 1), 50))
-            )
-        }
-        VirtualFluidVein(
-            101, 50, "EMPTY", 500.0, 0..0,
-            Color.WHITE.rgb,
-            listOf(1, 0, -1), FluidStack(FluidRegistry.WATER, 1000)
-        )
-        repeat(100) {
-            VirtualFluidVein(
-                it + 1, 0, "TEST #$it", 40.0, 5000..100000,
-                Color(it, it, it).rgb,
-                listOf(1, 0, -1), FluidStack(FluidRegistry.WATER, 1000)
-            )
-        }
         proxy.postInit(event)
     }
 

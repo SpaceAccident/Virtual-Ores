@@ -6,9 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import net.minecraftforge.common.DimensionManager
 import space.accident.virtualores.api.TypeFluidVein
-import space.accident.virtualores.api.VirtualOreAPI
-import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_FLUIDS
-import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_ORES
+import space.accident.virtualores.api.VirtualAPI
+import space.accident.virtualores.api.VirtualAPI.GENERATED_REGIONS_VIRTUAL_FLUIDS
+import space.accident.virtualores.api.VirtualAPI.GENERATED_REGIONS_VIRTUAL_ORES
 import space.accident.virtualores.api.fluids.RegionFluid
 import space.accident.virtualores.api.ores.RegionOre
 import space.accident.virtualores.extras.TypeFluidVeinSerialized
@@ -93,7 +93,7 @@ object JsonManager {
                 GENERATED_REGIONS_VIRTUAL_ORES[currentDim] = dimRegions
             }
         }
-        VirtualOreAPI.resizeOreVeins()
+        VirtualAPI.resizeOreVeins()
     }
 
     private fun saveOres() {
@@ -128,7 +128,7 @@ object JsonManager {
                 GENERATED_REGIONS_VIRTUAL_FLUIDS[currentDim] = dimRegions
             }
         }
-        VirtualOreAPI.resizeFluidVeins()
+        VirtualAPI.resizeFluidVeins()
     }
 
     private fun saveFluids() {

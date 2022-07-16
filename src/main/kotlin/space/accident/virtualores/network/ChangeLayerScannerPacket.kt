@@ -11,7 +11,6 @@ class ChangeLayerScannerPacket(
     private val playerId: Int = 0,
 ): IPacket {
 
-
     override fun getPacketID(): Int {
         return 1
     }

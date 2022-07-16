@@ -131,7 +131,5 @@ class RenderMapTexture(
             )
             draw()
         }
-
     }
-
 }

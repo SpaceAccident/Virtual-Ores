@@ -7,12 +7,8 @@ import java.util.function.BiConsumer
 
 class VeinsGuiScrollingList(
     private val parent: GuiScreen,
-    width: Int,
-    height: Int,
-    top: Int,
-    bottom: Int,
-    left: Int,
-    entryHeight: Int,
+    width: Int, height: Int,
+    top: Int, bottom: Int, left: Int, entryHeight: Int,
     private val veins: HashMap<String, Int>,
     private val onSelected: BiConsumer<String, Boolean>?,
 ) : GuiScrollingList(parent.mc, width, height, top, bottom, left, entryHeight) {

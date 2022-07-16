@@ -70,7 +70,6 @@ interface IPacket {
     fun getPacketID(): Int
     fun encode(): ByteArray
     fun process()
-
     fun decode(data: ByteArrayDataInput): IPacket
 }
 

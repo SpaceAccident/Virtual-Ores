@@ -1,7 +1,7 @@
 package space.accident.virtualores.api
 
 import net.minecraft.world.chunk.Chunk
-import space.accident.virtualores.api.VirtualOreAPI.GENERATED_REGIONS_VIRTUAL_FLUIDS
+import space.accident.virtualores.api.VirtualAPI.GENERATED_REGIONS_VIRTUAL_FLUIDS
 import space.accident.virtualores.api.fluids.ChunkFluid
 import space.accident.virtualores.api.fluids.RegionFluid
 import space.accident.virtualores.api.fluids.VeinFluid
@@ -71,7 +71,7 @@ object FluidGenerator {
     private fun RegionFluid.generate() {
         for (xx in 0 until VEIN_COUNT_IN_REGIN_COORDINATE) {
             for (zz in 0 until VEIN_COUNT_IN_REGIN_COORDINATE) {
-                VirtualOreAPI.getRandomVirtualFluid(dim)?.also { ore ->
+                VirtualAPI.getRandomVirtualFluid(dim)?.also { ore ->
                     this.veins += VeinFluid(
                         xVein = (xRegion shl SHIFT_VEIN_FROM_REGION) + xx,
                         zVein = (zRegion shl SHIFT_VEIN_FROM_REGION) + zz,
@@ -83,7 +83,6 @@ object FluidGenerator {
             }
         }
     }
-
 
     /**
      * Get Vein Fluid

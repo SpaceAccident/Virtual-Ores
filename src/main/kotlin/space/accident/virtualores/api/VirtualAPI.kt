@@ -11,12 +11,14 @@ import space.accident.virtualores.api.fluids.RegionFluid
 import space.accident.virtualores.api.ores.RegionOre
 import space.accident.virtualores.api.ores.VeinOre
 import space.accident.virtualores.config.Config
+import space.accident.virtualores.config.Config.IS_DISABLED_VIRTUAL_FLUIDS
+import space.accident.virtualores.config.Config.IS_DISABLED_VIRTUAL_ORES
 import java.util.*
 
 /**
  * Virtual Ore API
  */
-object VirtualOreAPI {
+object VirtualAPI {
 
     /**
      * Set of types Virtual Ores
@@ -182,6 +184,7 @@ object VirtualOreAPI {
      */
     @JvmStatic
     fun registerVirtualOre(vein: VirtualOreVein) {
+        if (IS_DISABLED_VIRTUAL_ORES) return
         if (VIRTUAL_ORES.any { it.id == vein.id }) {
             throw ConcurrentModificationException(
                 "Ore vein must not use the identifier of the other ore vein: ${vein.name}"
@@ -277,6 +280,7 @@ object VirtualOreAPI {
      * @param vein virtual fluid
      */
     fun registerVirtualFluid(vein: VirtualFluidVein) {
+        if (IS_DISABLED_VIRTUAL_FLUIDS) return
         if (VIRTUAL_FLUIDS.any { it.id == vein.id }) {
             throw ConcurrentModificationException(
                 "Fluid vein must not use the identifier of the other ore vein: ${vein.name}"
